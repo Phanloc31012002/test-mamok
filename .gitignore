@@ -1,0 +1,13 @@
+.library-helpers/
+.library-runtime/
+reference/
+node_modules/
+public/
+dist/
+evidence/
+.package-staging/
+.source-release/
+.price-revisions/
+CONTINUATION.md
+.env
+.env.*
