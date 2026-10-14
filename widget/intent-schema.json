@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Mầm Gemini classification contract",
+  "description": "Current server-only model output: two allowlisted fields, no prose, slots, prices or URLs. Runtime also checks the product/category relationship. This documentation file is not fetched by the widget.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["intent", "categoryId"],
+  "properties": {
+    "intent": {"type":"string", "enum":["product","services","hours","address","contact","greeting","out_of_scope","unknown"]},
+    "categoryId": {"type":["string","null"], "enum":["namecard","catalogue","decal","flyer","bag","box","envelope","red-envelope","receipt","folder","tag","menu","wedding",null]}
+  },
+  "allOf": [{
+    "if": {"properties":{"intent":{"const":"product"}}},
+    "then": {"properties":{"categoryId":{"type":"string"}}},
+    "else": {"properties":{"categoryId":{"type":"null"}}}
+  }]
+}

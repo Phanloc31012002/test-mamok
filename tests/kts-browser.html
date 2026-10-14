@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mầm — KTS mock widget integration tests</title>
+  <link rel="stylesheet" href="browser.css">
+  <script defer src="../widget/policy.js"></script>
+  <script defer src="../widget/approved-language.js"></script>
+  <script defer src="../widget/mascot.js"></script>
+  <script defer src="../widget/price-menu.js"></script>
+  <script defer src="../widget/gemini-client.js"></script>
+  <script defer src="../widget/kts-session.js"></script>
+  <script defer src="../widget/kts-client.js"></script>
+  <script defer src="../widget/drag.js"></script>
+  <script defer src="../widget/presentation.js"></script>
+  <script defer src="../widget/widget.js"></script>
+  <script defer src="kts-browser.js"></script>
+</head>
+<body><main>
+  <p class="eyebrow">MOCK ONLY · NO LIVE QUOTE OR PROVIDER CALLS</p>
+  <h1>Kiểm tra luồng card, tag và voucher KTS</h1>
+  <p>Parser, client, widget và sprite thật; endpoint giả chỉ trả tổng tiền tùy ý dùng cho kiểm thử. Bộ này không gọi Vĩnh Phát hoặc Google và không kiểm giá kinh doanh.</p>
+  <div class="actions"><button id="run">Chạy kiểm tra KTS mock</button><a href="../index.html">Bản thử Mầm</a></div>
+  <p id="summary" role="status">Sẵn sàng.</p><ol id="results"></ol>
+  <details><summary>JSON kết quả</summary><pre id="results-json"></pre></details>
+</main></body>
+</html>

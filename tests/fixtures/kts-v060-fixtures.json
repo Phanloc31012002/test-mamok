@@ -1,0 +1,735 @@
+{
+  "version": "0.6.0",
+  "contains": "public input/output only",
+  "capturedAtUtc": "2026-10-14T10:57:56.804Z",
+  "cases": [
+    {
+      "id": "c300-500-corners",
+      "input": {
+        "paper": "p08",
+        "quantity": 500,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": true
+      },
+      "expected": {
+        "total": "400000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 500,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": true,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "c300-1000-corners",
+      "input": {
+        "paper": "p08",
+        "quantity": 1000,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": true
+      },
+      "expected": {
+        "total": "700000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 1000,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": true,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "b350-100-corners",
+      "input": {
+        "paper": "p09",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": true
+      },
+      "expected": {
+        "total": "140000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p09",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": true,
+          "paperLabel": "B350"
+        }
+      }
+    },
+    {
+      "id": "b350-500-corners",
+      "input": {
+        "paper": "p09",
+        "quantity": 500,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": true
+      },
+      "expected": {
+        "total": "650000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p09",
+          "quantity": 500,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": true,
+          "paperLabel": "B350"
+        }
+      }
+    },
+    {
+      "id": "b350-1000-corners",
+      "input": {
+        "paper": "p09",
+        "quantity": 1000,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": true
+      },
+      "expected": {
+        "total": "1200000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p09",
+          "quantity": 1000,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": true,
+          "paperLabel": "B350"
+        }
+      }
+    },
+    {
+      "id": "voucher-20-plain",
+      "input": {
+        "paper": "p08",
+        "quantity": 20,
+        "length": 18,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "90000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 20,
+          "length": 18,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "voucher-50-plain",
+      "input": {
+        "paper": "p08",
+        "quantity": 50,
+        "length": 18,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "150000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 50,
+          "length": 18,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "voucher-100-plain",
+      "input": {
+        "paper": "p08",
+        "quantity": 100,
+        "length": 18,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "230000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 100,
+          "length": 18,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "voucher-200-plain",
+      "input": {
+        "paper": "p08",
+        "quantity": 200,
+        "length": 18,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "470000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 200,
+          "length": 18,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "voucher-20-corners-mica",
+      "input": {
+        "paper": "p08",
+        "quantity": 20,
+        "length": 18,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": true
+      },
+      "expected": {
+        "total": "90000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 20,
+          "length": 18,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": true,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "voucher-50-corners-mica",
+      "input": {
+        "paper": "p08",
+        "quantity": 50,
+        "length": 18,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": true
+      },
+      "expected": {
+        "total": "150000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 50,
+          "length": 18,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": true,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "neve-canonical-p18",
+      "input": {
+        "paper": "p18",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "190000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p18",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "Boheme Tradition Neve 320gsm"
+        }
+      }
+    },
+    {
+      "id": "voucher-20-corners-no-mica",
+      "input": {
+        "paper": "p08",
+        "quantity": 20,
+        "length": 18,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "90000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 20,
+          "length": 18,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": false,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "voucher-50-corners-no-mica",
+      "input": {
+        "paper": "p08",
+        "quantity": 50,
+        "length": 18,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": true,
+        "roundCorners": true,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "150000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p08",
+          "quantity": 50,
+          "length": 18,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": true,
+          "roundCorners": true,
+          "micaBox": false,
+          "paperLabel": "C300"
+        }
+      }
+    },
+    {
+      "id": "catalog-p05",
+      "input": {
+        "paper": "p05",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "54999",
+        "currency": "VND",
+        "spec": {
+          "paper": "p05",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "C150"
+        }
+      }
+    },
+    {
+      "id": "catalog-p06",
+      "input": {
+        "paper": "p06",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "56999",
+        "currency": "VND",
+        "spec": {
+          "paper": "p06",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "C200"
+        }
+      }
+    },
+    {
+      "id": "catalog-p07",
+      "input": {
+        "paper": "p07",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "59999",
+        "currency": "VND",
+        "spec": {
+          "paper": "p07",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "C250"
+        }
+      }
+    },
+    {
+      "id": "catalog-p10",
+      "input": {
+        "paper": "p10",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "130000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p10",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "ARCOPRINT1 EXTRA WHITE 300GSM"
+        }
+      }
+    },
+    {
+      "id": "catalog-p11",
+      "input": {
+        "paper": "p11",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "130000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p11",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "K02 146gsm"
+        }
+      }
+    },
+    {
+      "id": "catalog-p12",
+      "input": {
+        "paper": "p12",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "140000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p12",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "old mill avorio 350gsm"
+        }
+      }
+    },
+    {
+      "id": "catalog-p13",
+      "input": {
+        "paper": "p13",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "130000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p13",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "Magic coma white 300gsm"
+        }
+      }
+    },
+    {
+      "id": "catalog-p14",
+      "input": {
+        "paper": "p14",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "140000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p14",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "old mill premium white 350gsm"
+        }
+      }
+    },
+    {
+      "id": "catalog-p15",
+      "input": {
+        "paper": "p15",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "140000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p15",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "ARCOPRINT1 EXTRA WHITE 350GSM"
+        }
+      }
+    },
+    {
+      "id": "catalog-p16",
+      "input": {
+        "paper": "p16",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "190000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p16",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "s16 285gsm"
+        }
+      }
+    },
+    {
+      "id": "catalog-p17",
+      "input": {
+        "paper": "p17",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "190000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p17",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "giấy CONQUEROR IRIDESCENT GOLDEN HAZE 250GSM"
+        }
+      }
+    },
+    {
+      "id": "catalog-p20",
+      "input": {
+        "paper": "p20",
+        "quantity": 100,
+        "length": 9,
+        "width": 5.4,
+        "sides": 2,
+        "laminate": false,
+        "roundCorners": false,
+        "micaBox": false
+      },
+      "expected": {
+        "total": "140000",
+        "currency": "VND",
+        "spec": {
+          "paper": "p20",
+          "quantity": 100,
+          "length": 9,
+          "width": 5.4,
+          "sides": 2,
+          "laminate": false,
+          "roundCorners": false,
+          "micaBox": false,
+          "paperLabel": "Astropack 350gsm"
+        }
+      }
+    }
+  ]
+}

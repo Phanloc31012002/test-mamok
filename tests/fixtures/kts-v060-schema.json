@@ -1,0 +1,171 @@
+{
+  "version": "0.6.0",
+  "versionEvidence": "Owner deployment handoff; fresh public catalog and API I/O captured 2026-10-14",
+  "endpoint": "https://invinhphat.com/wp-json/vp-quickquote/v1/quote",
+  "requestFields": [
+    "paper",
+    "quantity",
+    "length",
+    "width",
+    "sides",
+    "laminate",
+    "roundCorners",
+    "micaBox"
+  ],
+  "responseFields": [
+    "total",
+    "currency",
+    "spec"
+  ],
+  "units": {
+    "quantity": "products",
+    "length": "cm",
+    "width": "cm",
+    "currency": "VND"
+  },
+  "papers": [
+    {
+      "id": "p05",
+      "name": "C150"
+    },
+    {
+      "id": "p06",
+      "name": "C200"
+    },
+    {
+      "id": "p07",
+      "name": "C250"
+    },
+    {
+      "id": "p08",
+      "name": "C300"
+    },
+    {
+      "id": "p09",
+      "name": "B350"
+    },
+    {
+      "id": "p10",
+      "name": "ARCOPRINT1 EXTRA WHITE 300GSM"
+    },
+    {
+      "id": "p11",
+      "name": "K02 146gsm"
+    },
+    {
+      "id": "p12",
+      "name": "old mill avorio 350gsm"
+    },
+    {
+      "id": "p13",
+      "name": "Magic coma white 300gsm"
+    },
+    {
+      "id": "p14",
+      "name": "old mill premium white 350gsm"
+    },
+    {
+      "id": "p15",
+      "name": "ARCOPRINT1 EXTRA WHITE 350GSM"
+    },
+    {
+      "id": "p16",
+      "name": "s16 285gsm"
+    },
+    {
+      "id": "p17",
+      "name": "giấy CONQUEROR IRIDESCENT GOLDEN HAZE 250GSM"
+    },
+    {
+      "id": "p18",
+      "name": "Boheme Tradition Neve 320gsm"
+    },
+    {
+      "id": "p20",
+      "name": "Astropack 350gsm"
+    }
+  ],
+  "publicApiPapers": [
+    {
+      "id": "p05",
+      "name": "C150"
+    },
+    {
+      "id": "p06",
+      "name": "C200"
+    },
+    {
+      "id": "p07",
+      "name": "C250"
+    },
+    {
+      "id": "p08",
+      "name": "C300"
+    },
+    {
+      "id": "p09",
+      "name": "B350"
+    },
+    {
+      "id": "p10",
+      "name": "ARCOPRINT1 EXTRA WHITE 300GSM"
+    },
+    {
+      "id": "p11",
+      "name": "K02 146gsm"
+    },
+    {
+      "id": "p12",
+      "name": "old mill avorio 350gsm"
+    },
+    {
+      "id": "p13",
+      "name": "Magic coma white 300gsm"
+    },
+    {
+      "id": "p14",
+      "name": "old mill premium white 350gsm"
+    },
+    {
+      "id": "p15",
+      "name": "ARCOPRINT1 EXTRA WHITE 350GSM"
+    },
+    {
+      "id": "p16",
+      "name": "s16 285gsm"
+    },
+    {
+      "id": "p17",
+      "name": "giấy CONQUEROR IRIDESCENT GOLDEN HAZE 250GSM"
+    },
+    {
+      "id": "p18",
+      "name": "Boheme Tradition Neve 320gsm"
+    },
+    {
+      "id": "p19",
+      "name": "Old Mill Biancon 350gsm"
+    },
+    {
+      "id": "p20",
+      "name": "Astropack 350gsm"
+    }
+  ],
+  "excluded": [
+    {
+      "id": "p19",
+      "name": "Old Mill Biancon 350gsm",
+      "reason": "Owner baseline not confirmed; consultation only"
+    },
+    {
+      "id": "p22",
+      "name": "Boheme Tradition Neve 320gsm",
+      "reason": "Legacy API alias; public UI canonical selection is p18"
+    }
+  ],
+  "notes": [
+    "B300 and Kraft have no approved adapter mapping",
+    "Pass the exact eight public fields and use the server total unchanged",
+    "Public frontend locks laminate outside p05-p09 and mica above 48.6 square centimeters; no pricing calculation is copied"
+  ]
+}

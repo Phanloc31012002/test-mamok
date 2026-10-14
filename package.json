@@ -1,0 +1,15 @@
+{
+  "name": "thanh-an-mam-chat-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "build": "node tools/build.mjs",
+    "test": "node --test tests/policy.test.mjs tests/price-menu.test.mjs tests/quote-flow.test.mjs tests/gemini-server.test.mjs tests/gemini-client.test.mjs tests/owner-price-revision.test.mjs tests/conversation-continuity.test.mjs tests/approved-language.test.mjs tests/source-info-client.test.mjs tests/source-info-server.test.mjs tests/display-links.test.mjs tests/drag.test.mjs tests/basic-information.test.mjs tests/presentation.test.mjs tests/widget-presentation.test.mjs tests/kts-session.test.mjs tests/kts-client.test.mjs tests/kts-server.test.mjs tests/kts-widget.test.mjs tests/kts-v060-fixtures.test.mjs",
+    "language:review": "node tools/review-language.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
