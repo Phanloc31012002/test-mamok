@@ -110,7 +110,7 @@ test('total stays an integer string; numeric, signed, fractional and formatted v
 });
 
 test('HTTP fallback reasons are safe and raw error details never reach the caller or retry',async()=>{
-  for(const [status,reason] of [[400,'invalid'],[422,'consultation'],[429,'busy'],[503,'unavailable'],[403,'unavailable'],[500,'unavailable']]){
+  for(const [status,reason] of [[400,'invalid'],[422,'consultation'],[429,'busy'],[503,'unavailable'],[403,'configuration'],[500,'unavailable']]){
     const f=await ready((_,init)=>response(init.method==='GET'?{version:1,enabled:true}:{message:'private',raw:'<script>private</script>'},{status:init.method==='GET'?200:status}));assert.deepEqual(plain(await f.client.quote(SPEC)),fallback(reason));assert.equal(f.calls.length,2);assert.equal(f.timers.size,0);
   }
   for(const value of [{version:1,kind:'fallback',reason:'private'},{...fallback('busy'),message:'private'}]){const f=await ready((_,init)=>response(init.method==='GET'?{version:1,enabled:true}:value));assert.deepEqual(plain(await f.client.quote(SPEC)),fallback('unavailable'));}
@@ -155,4 +155,14 @@ test('deadline cancels a stalled response reader and settles independently of re
 test('destroy stops both quote and metadata operations and cannot be reopened',async()=>{
   let signal;const f=fixture((_,init)=>{signal=init.signal;return new Promise(()=>{});}),client=f.create(),checking=client.check();client.destroy();assert.equal(await checking,false);assert.equal(signal.aborted,true);assert.equal(await client.check(),false);assert.equal(await client.quote(SPEC),null);assert.equal(f.calls.length,1);assert.equal(f.timers.size,0);assert.equal(client.getState().destroyed,true);
   const g=await ready((_,init)=>init.method==='GET'?response({version:1,enabled:true}):new Promise(()=>{})),pending=g.client.quote(SPEC);g.client.destroy();assert.equal(await pending,null);assert.equal(g.client.getState().enabled,false);assert.equal(g.timers.size,0);
+});
+
+test('a denied availability check exposes only a safe reason and an explicit retry can recover',async()=>{
+  let status=403;
+  const f=fixture((_,init)=>response(init.method==='GET'?{version:1,enabled:true}:quote(JSON.parse(init.body)),{status:init.method==='GET'?status:200})),client=f.create();
+  assert.equal(await client.check(),false);assert.equal(client.getFailure(),'configuration');assert.deepEqual(plain(await client.quote(SPEC)),fallback('configuration'));
+  assert.equal(await client.check(),false);assert.equal(f.calls.length,1);
+  status=200;const first=client.check({retry:true}),second=client.check({retry:true});
+  assert.equal(await first,true);assert.equal(await second,true);assert.equal(f.calls.length,2);
+  assert.deepEqual(plain(await client.quote(SPEC)),quote());assert.equal(f.calls.length,3);
 });

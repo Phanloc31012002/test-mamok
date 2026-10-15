@@ -59,11 +59,11 @@ test('tag and voucher have no inherited or invented standard size',()=>{
   for(const text of ['Tag chữ nhật KTS C300 100 cái','In voucher C300 100 cái']){const session=kts.createSession();question(session.answer(text),'size');assert.equal(session.getState().slots.length,undefined);assert.equal(session.getState().slots.width,undefined);assert.equal(session.getState().sizeOrigin,null);}
 });
 for(const product of ['In nhanh tag chữ nhật','In voucher'])test('restricted '+product+' asks for explicit C300 confirmation and presents only that paper',()=>{
-  const session=kts.createSession();const reply=session.answer(product+' 100 cái');question(reply,'paper');assert.deepEqual(reply.choices,[{label:'C300',query:'Giấy p08'}]);assert.equal(session.getState().slots.paper,undefined);
+  const session=kts.createSession();const reply=session.answer(product+' 100 cái');question(reply,'paper');assert.deepEqual(reply.choices,[{label:'C300',query:'Giấy C300'}]);assert.equal(session.getState().slots.paper,undefined);
   question(session.answer('Giấy p08'),'size');assert.equal(session.getState().slots.paper,'p08');assert.equal(session.getState().slots.quantity,100);
 });
 for(const product of ['Tag chữ nhật KTS','In voucher'])for(const paper of kts.papers.filter(p=>p.id!=='p08'))test('restricted '+product+' refuses '+paper.id+' without silent paper coercion',()=>{
-  const session=kts.createSession();const reply=session.answer(product+' '+paper.id+' 100 cái 10 × 5 cm 2 mặt có cán màng không bo góc');question(reply,'paper');assert.deepEqual(reply.choices,[{label:'C300',query:'Giấy p08'}]);assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,100);assert.equal(reply.spec,undefined);
+  const session=kts.createSession();const reply=session.answer(product+' '+paper.id+' 100 cái 10 × 5 cm 2 mặt có cán màng không bo góc');question(reply,'paper');assert.deepEqual(reply.choices,[{label:'C300',query:'Giấy C300'}]);assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,100);assert.equal(reply.spec,undefined);
   const spec=ready(session.answer('C300'));assert.equal(spec.paper,'p08');assert.equal(spec.quantity,100);assert.equal(spec.length,10);assert.equal(spec.width,5);assert.equal(spec.sides,2);
 });
 test('non-C300 paper edits cannot reuse an already completed voucher C300 quote request',()=>{
@@ -71,10 +71,10 @@ test('non-C300 paper edits cannot reuse an already completed voucher C300 quote 
   question(session.answer('Giấy p20 200 cái'),'paper');assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,200);question(session.answer('Tổng tiền'),'paper');assert.equal(ready(session.answer('C300')).paper,'p08');
 });
 test('generic art-paper wording for tag and voucher asks C300 rather than offering card art papers',()=>{
-  for(const product of ['Tag KTS','In voucher']){const session=kts.createSession();const reply=session.answer(product+' giấy mỹ thuật 100 cái');question(reply,'paper');assert.deepEqual(reply.choices,[{label:'C300',query:'Giấy p08'}]);assert.equal(reply.spec,undefined);}
+  for(const product of ['Tag KTS','In voucher']){const session=kts.createSession();const reply=session.answer(product+' giấy mỹ thuật 100 cái');question(reply,'paper');assert.deepEqual(reply.choices,[{label:'C300',query:'Giấy C300'}]);assert.equal(reply.spec,undefined);}
 });
 test('card paper choices contain fifteen canonical papers with no Biancon, Kraft or duplicate Neve ID',()=>{
-  const session=kts.createSession(),reply=session.answer('Danh thiếp KTS');question(reply,'paper');assert.deepEqual(reply.choices.map(c=>c.query),kts.papers.map(p=>'Giấy '+p.id));assert.equal(reply.choices.length,15);assert.doesNotMatch(JSON.stringify(reply.choices),/Biancon|Kraft|p19|p21|p22/);assert.equal(reply.choices.filter(choice=>/Boheme/.test(choice.label)).length,1);
+  const session=kts.createSession(),reply=session.answer('Danh thiếp KTS');question(reply,'paper');assert.deepEqual(reply.choices.map(c=>c.query),kts.papers.map(p=>/^giấy /i.test(p.label)?p.label:'Giấy '+p.label));assert.equal(reply.choices.length,15);assert.doesNotMatch(JSON.stringify(reply.choices),/Biancon|Kraft|p19|p21|p22/);assert.equal(reply.choices.filter(choice=>/Boheme/.test(choice.label)).length,1);
 });
 test('tag accepts custom millimetres, including decimal comma, and emits centimetres',()=>{
   const session=kts.createSession();question(session.answer('Tag chữ nhật KTS C300 100 cái'),'size');question(session.answer('50 × 90 mm'),'sides');question(session.answer('In 2 mặt'),'laminate');question(session.answer('Có cán màng'),'roundCorners');question(session.answer('Có bo góc'),'micaBox');const spec=ready(session.answer('Không hộp mica'));assert.equal(spec.length,5);assert.equal(spec.width,9);assert.equal(spec.quantity,100);
@@ -178,7 +178,7 @@ test('custom wording with supplied dimensions preserves those dimensions and nev
   const session=kts.createSession();const spec=ready(session.answer('Card KTS p18 100 cái khổ riêng 8 × 5 cm 2 mặt không cán màng không bo góc không hộp mica'));assert.equal(spec.length,8);assert.equal(spec.width,5);
 });
 test('generic art-paper wording asks for a particular approved ID rather than choosing one',()=>{
-  const session=completeCard();question(session.answer('200 cái giấy mỹ thuật'),'paper');assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,200);assert.equal(session.getState().paperGroup,'art');assert.deepEqual(session.answer('Giấy mỹ thuật').choices.map(c=>c.query),kts.papers.slice(5).map(p=>'Giấy '+p.id));
+  const session=completeCard();question(session.answer('200 cái giấy mỹ thuật'),'paper');assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,200);assert.equal(session.getState().paperGroup,'art');assert.deepEqual(session.answer('Giấy mỹ thuật').choices.map(c=>c.query),kts.papers.slice(5).map(p=>/^giấy /i.test(p.label)?p.label:'Giấy '+p.label));
 });
 for(const text of ['Giấy p99','C350','Giấy Fort','Giấy Ivory','C150 hoặc C300','p08 hoặc p99','C300 hoặc C350'])test('unsupported or competing paper does not borrow the previous paper: '+text,()=>{
   const session=completeCard();question(session.answer(text+' 200 cái'),'paper');assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,200);
@@ -239,7 +239,7 @@ test('piece quantities survive a product switch but dimensions require fresh con
   const session=completeCard();ready(session.answer('200 cái'));question(session.answer('In voucher'),'size');assert.equal(session.getState().slots.quantity,200);assert.deepEqual(session.getState().rawQuantity,{value:200,unit:'piece'});assert.equal(session.getState().slots.width,undefined);
 });
 for(const product of ['Tag KTS','In voucher'])test('switching a non-C300 card to '+product+' drops its incompatible paper while retaining compatible public inputs',()=>{
-  const session=kts.createSession();ready(session.answer('Danh thiếp KTS p20 100 cái 2 mặt không bo góc không hộp mica'));const reply=session.answer(product);question(reply,'paper');assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,100);assert.equal(session.getState().slots.sides,2);assert.equal(session.getState().slots.length,undefined);assert.deepEqual(reply.choices,[{label:'C300',query:'Giấy p08'}]);
+  const session=kts.createSession();ready(session.answer('Danh thiếp KTS p20 100 cái 2 mặt không bo góc không hộp mica'));const reply=session.answer(product);question(reply,'paper');assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,100);assert.equal(session.getState().slots.sides,2);assert.equal(session.getState().slots.length,undefined);assert.deepEqual(reply.choices,[{label:'C300',query:'Giấy C300'}]);
   question(session.answer('C300'),'size');question(session.answer('10 × 5 cm'),'laminate');const spec=ready(session.answer('Có cán màng'));assert.equal(spec.paper,'p08');assert.equal(spec.laminate,true);
 });
 test('multiple products clear the active product rather than reviving a previous ready spec',()=>{
@@ -294,4 +294,64 @@ test('reset cancels local context without mutating a previously emitted immutabl
 });
 test('response objects contain structured inputs and choices only, without retaining visitor wording',()=>{
   const session=completeCard(),state=JSON.stringify(session.getState());assert.doesNotMatch(state,/history|messages|rawText|chat|provider|coefficient|total/i);assert.equal(Object.keys(ready(session.answer('Tính giá'))).length,8);
+});
+
+const friendlyPaper=paper=>/^giấy /i.test(paper.label)?paper.label:'Giấy '+paper.label;
+for(const paper of kts.papers)test('friendly button and typed paper round trips preserve the API identity '+paper.id,()=>{
+  const menu=kts.createSession().answer('Danh thiếp KTS'),choice=menu.choices.find(item=>item.label===paper.label);
+  assert.equal(choice.query,friendlyPaper(paper));assert.doesNotMatch(choice.query,/\bp\d{2}\b/i);
+  for(const selection of [choice.query,paper.label,paper.id.toUpperCase()]){
+    const session=completeCard(),before=session.getState().slots;
+    const reply=session.answer(selection),spec=ready(reply);
+    assert.deepEqual(spec,{...before,paper:paper.id,...(Number(paper.id.slice(1))>=10?{laminate:false}:{})});
+    assert.match(reply.summary,new RegExp(paper.label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  }
+});
+test('C300 and P08 are aliases across repeats, retry and product switches without stale card dimensions',()=>{
+  const session=completeCard();
+  for(const text of ['C300','P08','Giấy C300','Giấy p08','Báo giá lại'])assert.equal(ready(session.answer(text)).paper,'p08');
+  question(session.answer('In voucher'),'quantity');assert.equal(session.getState().slots.paper,'p08');
+  question(session.answer('20 cái'),'size');assert.equal(ready(session.answer('18 x 5,4 cm')).paper,'p08');
+});
+for(const name of ['mĩ','mỹ','mi','my'])test('art-paper capability question preserves the voucher and quantity: '+name,()=>{
+  const session=kts.createSession();ready(session.answer('In voucher C300 20 cái 18 x 5,4 cm 2 mặt có cán màng có bo góc'));
+  const before=session.getState(),reply=session.answer('có in giấy '+name+' thuật k');
+  assert.equal(reply.kind,'consultation');assert.equal(reply.preserveOrder,true);assert.match(reply.text,/C300/);
+  assert.deepEqual(session.getState(),before);assert.equal(ready(session.answer('Giấy p08')).quantity,20);
+  assert.equal(ready(session.answer('Giấy C300')).length,18);
+});
+for(const name of ['mĩ','mỹ','mi','my'])test('selecting art paper uses the same catalog for '+name,()=>{
+  const session=completeCard(),reply=session.answer('đổi giấy '+name+' thuật');question(reply,'paper');
+  assert.equal(session.getState().slots.paper,undefined);assert.equal(reply.choices.length,10);
+});
+for(const paper of kts.papers)test('explicit conflicting grammage never reuses an accepted paper: '+paper.label,()=>{
+  const session=completeCard(),wrong=paper.label.replace(/(\d+)\s*gsm/i,'999gsm').replace(/^[CB]\d+$/,'C999');
+  question(session.answer('đổi sang giấy '+wrong+', 200 cái'),'paper');assert.equal(session.getState().slots.paper,undefined);assert.equal(session.getState().slots.quantity,200);
+  question(session.answer('Tính lại'),'paper');
+});
+for(const text of ['old mill premium white 300gsm','C300 định lượng 250gsm','C300 250gr','đổi sang giấy Duplex 300gsm, 200 cái','đổi sang giấy chưa biết'])test('an unresolved paper edit cannot quote the old C300: '+text,()=>{
+  const session=completeCard();question(session.answer(text),'paper');assert.equal(session.getState().slots.paper,undefined);
+});
+for(const paper of kts.papers)for(const verb of ['không dùng','không chọn'])test(verb+' '+paper.label+' does not produce a quote',()=>{
+  const session=completeCard();question(session.answer(verb+' '+paper.label),'paper');assert.equal(session.getState().slots.paper,undefined);
+});
+test('rejecting one paper while explicitly selecting another retains only the positive choice',()=>{
+  const session=completeCard();assert.equal(ready(session.answer('không dùng C300 đổi sang C200')).paper,'p06');
+  question(session.answer('không chọn C200 C200'),'paper');
+});
+for(const verb of ['không cần','không muốn','không dùng','chưa cần'])for(const [finish,field]of [['cán màng','laminate'],['hộp mica','micaBox'],['bo góc','roundCorners']])test(verb+' '+finish+' is a negative specification',()=>{
+  const session=completeCard();const spec=ready(session.answer(verb+' '+finish));assert.equal(spec[field],false);
+});
+test('a recap visibly includes all public specs and never changes state or requests a quote',()=>{
+  const session=completeCard(),before=session.getState();
+  for(const text of ['quy cách cần tính của tooii là gì mà tính ko ra','Nhắc lại quy cách','thong so hien tai la gi']){
+    const reply=session.answer(text);assert.equal(reply.kind,'clarify');assert.equal(reply.specSummary,true);assert.equal(reply.spec,undefined);
+    for(const detail of ['Danh thiếp','C300','500 cái','5 hộp','9 × 5,4 cm','2 mặt','cán màng','không bo góc','hộp mica'])assert.ok(reply.text.includes(detail),detail);
+    assert.deepEqual(session.getState(),before);
+  }
+});
+test('a partial or empty recap asks exactly the missing field without inventing specs',()=>{
+  const session=kts.createSession();question(session.answer('Quy cách hiện tại là gì'),'product');assert.equal(session.getState().product,null);
+  session.answer('In voucher 20 cái 18 x 5,4 cm');const before=session.getState(),reply=session.answer('Nhắc lại quy cách');
+  question(reply,'paper');assert.match(reply.text,/20 cái/);assert.doesNotMatch(reply.summary,/C300/);assert.deepEqual(session.getState(),before);
 });

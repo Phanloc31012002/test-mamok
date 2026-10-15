@@ -43,8 +43,8 @@
     function freeze(value){Object.freeze(value);Object.values(value).forEach(v=>{if(v&&typeof v==='object'&&!Object.isFrozen(v))freeze(v);});}freeze(data);
     const conversation=root.ThanhAnFAQ.createSession?root.ThanhAnFAQ.createSession(data):{answer:text=>root.ThanhAnFAQ.answer(text,data),reset(){}};
     const ktsSession=root.ThanhAnKts?.createSession();
-    let legacyCardTurns=[],legacyCardPending=false;
-    function resetConversation(){conversation.reset();ktsSession?.reset();legacyCardTurns=[];legacyCardPending=false;}
+    let legacyCardTurns=[],legacyCardPending=false,lastKtsFailure=null;
+    function resetConversation(){conversation.reset();ktsSession?.reset();legacyCardTurns=[];legacyCardPending=false;lastKtsFailure=null;}
     const presentation=root.ThanhAnPresentation.create({delayMs:320});
     function snapshotInformation(query){
       const corpus=config.informationData;
@@ -94,8 +94,10 @@
     const ktsReady=ktsClient?ktsClient.check().then(enabled=>{ktsStatusReady=true;return !destroyed&&enabled;}):Promise.resolve(false);
     function abortKts(){for(const finish of [...ktsReadyWaits])finish(false);if(ktsStatusReady)ktsClient?.abort();}
     function waitForKts(){
-      if(ktsStatusReady||!ktsClient)return Promise.resolve(!!ktsClient?.getState().enabled);
-      return new Promise(resolve=>{const finish=ready=>{ktsReadyWaits.delete(finish);resolve(ready);};ktsReadyWaits.add(finish);ktsReady.then(finish);});
+      if(!ktsClient)return Promise.resolve(false);
+      if(ktsClient.getState().enabled)return Promise.resolve(true);
+      const ready=ktsStatusReady?ktsClient.check({retry:true}):ktsReady;
+      return new Promise(resolve=>{const finish=enabled=>{ktsReadyWaits.delete(finish);resolve(!destroyed&&enabled);};ktsReadyWaits.add(finish);ready.then(finish);});
     }
     const log=el('div','ta-log',undefined,content);log.setAttribute('role','log');log.setAttribute('aria-live','polite');log.setAttribute('aria-relevant','additions');log.setAttribute('aria-label','Cuộc trò chuyện với Mầm');
     const auxiliary=el('section','ta-aux-view',undefined,content);auxiliary.id='ta-mam-aux-view';auxiliary.hidden=true;auxiliary.setAttribute('aria-labelledby','ta-aux-title');
@@ -274,17 +276,19 @@
       // without changing either engine's selected product or quantity unit.
       const base=root.ThanhAnFAQ.answer(text,data);
       if(['policy','limit','contacts','faq'].includes(base.kind))return base;
-      if(!root.ThanhAnKts.isRequest(text)&&/\?|\b(la gi|giay gi|dinh luong|bao nhieu gsm|kich thuoc|kho giay|kt a[45])\b/.test(normalized)){
+      if(!root.ThanhAnKts.isRequest(text)&&!/\b(?:dinh luong\s*\d+|\d+\s*(?:gsm|g|gr))\b/.test(normalized)&&/\?|\b(la gi|giay gi|dinh luong|bao nhieu gsm|kich thuoc|kho giay|kt a[45])\b/.test(normalized)){
         const basic=root.ThanhAnFAQ.createSession?.(data).answer(text);
         if(basic?.basicInformation)return basic;
       }
       const active=ktsSession.getState().product;
       const otherProduct=/\b(catalogue|catalog|decal|tem nhan|to roi|tui giay|hop giay|bao thu|li xi|phieu thu|folder|menu|thiep cuoi)\b/.test(normalized);
       const methodChoice=legacyCardPending&&/\b(in nhanh|kts|ky thuat so|digital)\b/.test(normalized)&&!normalized.includes('offset');
-      if(!otherProduct&&(active||root.ThanhAnKts.isRequest(text)||methodChoice)){
+      if(!otherProduct&&(active||root.ThanhAnKts.isRequest(text)||root.ThanhAnKts.isSummaryRequest(text)||methodChoice)){
         if(!active)conversation.reset();
         const inputText=methodChoice&&!active?'Card in nhanh, '+legacyCardTurns.join(', ')+', '+text:text;
-        const result=ktsSession.answer(inputText);
+        const previous=JSON.stringify(ktsSession.getState().slots),result=ktsSession.answer(inputText);
+        if(previous!==JSON.stringify(ktsSession.getState().slots))lastKtsFailure=null;
+        if(result.specSummary&&lastKtsFailure)return {...result,text:result.text+' '+(lastKtsFailure==='configuration'?'Lần tính trước bị lỗi kết nối bộ tính trên trang này.':'Lần tính trước bộ tính chưa trả được giá; Mầm chưa có giá để xác nhận.')};
         legacyCardTurns=[];legacyCardPending=false;
         if(result.kind!=='kts-exit')return {...result,handoff:result.kind==='consultation'};
         ktsSession.reset();conversation.reset();
@@ -304,8 +308,8 @@
       return result;
     }
     function ktsFallback(reason){
-      const messages={invalid:'Quy cách này cần kiểm tra lại. Bạn sửa lựa chọn hoặc nhắn Zalo để được tư vấn nhé.',consultation:'Quy cách này cần báo giá riêng. Bạn nhắn Zalo để được tư vấn nhé.',busy:'Bộ tính đang bận. Bạn chờ một phút rồi chọn tính lại nhé.',unavailable:'Bộ tính chưa phản hồi. Bạn chọn tính lại hoặc nhắn Zalo để được tư vấn nhé.'};
-      return{kind:'consultation',text:messages[reason]||messages.unavailable,handoff:true,...(['busy','unavailable'].includes(reason)?{choices:[{label:'Tính lại',query:'Báo giá lại'}]}:{})};
+      const messages={configuration:'Kết nối bộ tính trên trang này đang lỗi. Mầm vẫn giữ quy cách; bạn chọn tính lại hoặc nhắn Zalo để được tư vấn nhé.',invalid:'Quy cách này cần kiểm tra lại. Bạn sửa lựa chọn hoặc nhắn Zalo để được tư vấn nhé.',consultation:'Quy cách này cần báo giá riêng. Bạn nhắn Zalo để được tư vấn nhé.',busy:'Bộ tính đang bận. Bạn chờ một phút rồi chọn tính lại nhé.',unavailable:'Bộ tính chưa phản hồi. Bạn chọn tính lại hoặc nhắn Zalo để được tư vấn nhé.'};
+      return{kind:'consultation',text:messages[reason]||messages.unavailable,handoff:true,...(['busy','unavailable','configuration'].includes(reason)?{choices:[{label:'Tính lại',query:'Báo giá lại'}]}:{})};
     }
     function ktsQuote(result,request){
       const amount=BigInt(result.total).toLocaleString('vi-VN')+' ₫';
@@ -351,7 +355,8 @@
               if(destroyed||generation!==requestGeneration)return;
               const quote=ready?await ktsClient.quote(local.spec):null;
               if(destroyed||generation!==requestGeneration)return;
-              local=quote?.kind==='quote'?ktsQuote(quote,local):ktsFallback(quote?.reason||'unavailable');
+              lastKtsFailure=quote?.kind==='quote'?null:quote?.reason||ktsClient?.getFailure()||'unavailable';
+              local=quote?.kind==='quote'?ktsQuote(quote,local):ktsFallback(lastKtsFailure);
           }else if(local?.informationQuery&&infoClient){
               const info=await infoClient.get(local.informationQuery.productId,local.informationQuery.field);
               if(destroyed||generation!==requestGeneration)return;

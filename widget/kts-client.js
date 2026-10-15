@@ -26,7 +26,7 @@
     return Object.freeze({version:1,kind:'quote',total:value.total,currency:'VND',spec:Object.freeze({...spec,paperLabel:value.spec.paperLabel})});
   }
   function validateFallback(value){
-    return exact(value,['version','kind','reason'])&&value.version===1&&value.kind==='fallback'&&['consultation','invalid','busy','unavailable'].includes(value.reason)?fallback(value.reason):null;
+    return exact(value,['version','kind','reason'])&&value.version===1&&value.kind==='fallback'&&['consultation','invalid','busy','unavailable','configuration'].includes(value.reason)?fallback(value.reason):null;
   }
   // A fractional wire number can round to the requested integer in JSON.parse.
   // Scan the structure first, retaining only the unique direct quantity token.
@@ -90,7 +90,7 @@
     }catch(_){throw Error('KTS endpoint must be same-origin');}
     const request=options.fetchImpl||root.fetch?.bind(root);
     if(typeof request!=='function')throw Error('KTS fetch is unavailable');
-    let enabled=false,checked=false,destroyed=false,serial=0,active=null,checking=null,metadata=null;
+    let enabled=false,checked=false,destroyed=false,serial=0,active=null,checking=null,metadata=null,lastFailure='unavailable';
     function abort(){serial++;if(active)active.abort();active=null;}
     async function transport(method,spec){
       const id=serial,controller=new AbortController();if(method==='GET')checking=controller;else active=controller;let stop;
@@ -102,25 +102,25 @@
           if(method==='POST')init.body=JSON.stringify(spec);
           const response=await request(endpoint.href,init);
           if(controller.signal.aborted||response?.redirected||response?.url!==endpoint.href){cancel(response?.body);return fallback('unavailable');}
-          if(response.status!==200){cancel(response.body);return fallback({400:'invalid',422:'consultation',429:'busy',503:'unavailable'}[response.status]||'unavailable');}
+          if(response.status!==200){cancel(response.body);return fallback({400:'invalid',403:'configuration',422:'consultation',429:'busy',503:'unavailable'}[response.status]||'unavailable');}
           return (await read(response,controller.signal,spec))??fallback('unavailable');
         })().catch(()=>fallback('unavailable'));
         const value=await Promise.race([operation,boundary]);
         return destroyed||controller.signal.aborted||method==='POST'&&id!==serial?null:value;
       }finally{clearTimeout(timer);controller.signal.removeEventListener('abort',stop);if(active===controller)active=null;if(checking===controller)checking=null;}
     }
-    function check(){
-      if(destroyed)return Promise.resolve(false);if(metadata)return metadata;if(checked)return Promise.resolve(enabled);
-      metadata=transport('GET').then(value=>{if(destroyed)return false;checked=true;enabled=exact(value,['version','enabled'])&&value.version===1&&value.enabled===true;return enabled;}).finally(()=>{metadata=null;});return metadata;
+    function check({retry=false}={}){
+      if(destroyed)return Promise.resolve(false);if(metadata)return metadata;if(checked&&(enabled||!retry))return Promise.resolve(enabled);
+      metadata=transport('GET').then(value=>{if(destroyed)return false;checked=true;enabled=exact(value,['version','enabled'])&&value.version===1&&value.enabled===true;lastFailure=value?.reason==='configuration'?'configuration':'unavailable';return enabled;}).finally(()=>{metadata=null;});return metadata;
     }
     async function quote(value){
       if(destroyed)return null;
       const spec=validateSpec(value);if(!spec)return fallback('invalid');
-      if(!enabled)return fallback('unavailable');if(active)return fallback('busy');
+      if(!enabled)return fallback(lastFailure);if(active)return fallback('busy');
       const result=await transport('POST',spec);if(result===null)return null;
       return validateQuote(result,spec)||validateFallback(result)||fallback('unavailable');
     }
-    return Object.freeze({check,quote,abort,destroy(){if(destroyed)return;destroyed=true;enabled=false;abort();if(checking)checking.abort();},getState:()=>({enabled,checked,destroyed,pending:!!active})});
+    return Object.freeze({check,quote,abort,getFailure:()=>lastFailure,destroy(){if(destroyed)return;destroyed=true;enabled=false;abort();if(checking)checking.abort();},getState:()=>({enabled,checked,destroyed,pending:!!active})});
   }
   root.ThanhAnKtsQuote=Object.freeze({create,papers:PAPERS,validateSpec});
 })(typeof window!=='undefined'?window:globalThis);

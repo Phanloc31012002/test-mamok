@@ -35,7 +35,7 @@ async function tests(){
     const call={url:String(url),...init};calls.push(call);
     if(options.offline&&init.method==='POST')throw new Error('Mock offline');
     let value,status=200;
-    if(init.method==='GET')value={version:1,enabled:options.enabled!==false};
+    if(init.method==='GET'){value={version:1,enabled:options.enabled!==false};status=options.metadataStatus||200;}
     else{
      const spec=JSON.parse(init.body);status=options.status||200;
      value=options.reply?options.reply(spec):{version:1,kind:'quote',total:options.total??TOTAL,currency:'VND',spec:{...spec,paperLabel:ThanhAnKtsQuote.papers.find(p=>p.id===spec.paper)?.label}};
@@ -185,6 +185,33 @@ async function tests(){
   check('Removed information UI has no replacement while calculator POST includes only eight quote fields without chat or history',informationUiAbsent(f.shadow)&&modalAlerts===0&&f.posts().length===1&&Object.keys(f.dto()).sort().join(',')===keys&&same(f.dto(),SPEC)&&!/history|message|chat|Giờ làm việc|Danh thiếp|product|technology|total|price|cost|formula|coefficient/.test(f.posts()[0].body)&&f.aiPosts().length===0&&oneScroller(f.shadow));
   f=await mount();await send(f,CARD.replace('5 hộp','10 cái').replace('không bo góc','có bo góc'));
   check('A rounded-corner order below one hundred pieces keeps its eight-field spec and opaque total without a client surcharge',f.posts().length===1&&Object.keys(f.dto()).sort().join(',')===keys&&same(f.dto(),{...SPEC,quantity:10,roundCorners:true})&&total(f.shadow)==='10 cái: '+DISPLAY&&!/phụ phí|5\.000|VAT|giá vốn|lợi nhuận/.test(last(f.shadow).textContent)&&f.aiPosts().length===0);
+
+  // Public paper labels must survive the actual button -> transcript -> DTO -> quote path.
+  for(const paper of ThanhAnKtsQuote.papers){
+   f=await mount();await send(f,'Danh thiếp KTS 500 cái 2 mặt không cán màng không bo góc có hộp mica');await choose(f,paper.label);
+   const users=[...f.shadow.querySelectorAll('.ta-message-user')],echo=users.at(-1).querySelector('.ta-message-bubble').textContent;
+   check('Friendly button and exact paper identity '+paper.id,f.posts().length===1&&f.dto().paper===paper.id&&!/\bp\d{2}\b/i.test(echo)&&echo.includes(paper.label)&&bubble(f.shadow).includes(paper.label)&&fits(f.shadow));
+   await send(f,paper.id.toUpperCase());
+   check('Typed paper ID keeps its real label and all slots '+paper.id,f.dto().paper===paper.id&&f.dto().quantity===500&&bubble(f.shadow).includes(paper.label));
+  }
+  const connection={metadataStatus:403};f=await mount(connection);
+  await send(f,'In voucher 20 cái 18 x 5,4 cm 2 mặt có cán màng');await send(f,'có in giấy mĩ thuật k');
+  check('Art-paper capability question does not repeat the C300 picker or lose quantity',/mỹ thuật/.test(bubble(f.shadow))&&f.session.getState().slots.quantity===20&&!last(f.shadow).querySelector('.ta-kts-choices'));
+  await send(f,'Giấy C300');await choose(f,'Có');
+  check('A denied metadata request is a connection failure without any quote POST',f.posts().length===0&&/kết nối bộ tính/i.test(bubble(f.shadow)));
+  await send(f,'quy cách cần tính của tooii là gì mà tính ko ra');
+  check('Recap shows all retained voucher specs and the actual connection problem',f.posts().length===0&&['20 cái','18 × 5,4 cm','C300','2 mặt','cán màng','bo góc','lỗi kết nối'].every(value=>bubble(f.shadow).includes(value))&&fits(f.shadow)&&oneScroller(f.shadow));
+  connection.metadataStatus=200;await choose(f,'Tính lại');
+  check('An explicit retry rechecks metadata and prices the original voucher only once',f.posts().length===1&&same(f.dto(),{...SPEC,quantity:20,length:18,roundCorners:true,micaBox:false}));
+  f=await mount();await send(f,CARD);let previous=f.posts().length,blocked=true;
+  for(const text of ['không dùng C300','C300 định lượng 250gsm','old mill premium white 300gsm','đổi sang giấy Duplex 300gsm, 200 cái']){
+   await send(f,text);blocked=blocked&&f.posts().length===previous&&f.session.getState().pendingField==='paper'&&!f.session.getState().slots.paper;
+   await send(f,'Báo giá lại');blocked=blocked&&f.posts().length===previous;await choose(f,'C300');previous=f.posts().length;
+  }
+  check('Rejected, mismatched and unknown papers never reuse a previous quote',blocked);
+  await send(f,'không cần hộp mica');await send(f,'không muốn cán màng');await send(f,'không dùng bo góc');
+  check('Natural negative finishes reach the calculator as false',!f.dto().micaBox&&!f.dto().laminate&&!f.dto().roundCorners);
+
   check('Final quote, input and close control fit the responsive viewport',fits(f.shadow)&&oneScroller(f.shadow)&&f.shadow.querySelector('.ta-close').getClientRects().length>0);
   check('All awaited KTS/local turns show one presentation and settle after the response floor',presentation.length>=30&&presentation.every(p=>p.pending&&p.settled&&p.elapsed>=310),JSON.stringify({count:presentation.length,minMs:Math.min(...presentation.map(p=>p.elapsed))}));
   check('No persistent visitor chat or cookies are written',JSON.stringify({...localStorage})===stored.local&&JSON.stringify({...sessionStorage})===stored.session&&document.cookie===stored.cookie);

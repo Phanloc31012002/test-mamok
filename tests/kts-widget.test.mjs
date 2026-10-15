@@ -230,3 +230,44 @@ integration('a rounded-corner order below one hundred pieces preserves the eight
   const f=await fixture(t);await send(f,CARD.replace('5 hộp','10 cái').replace('không bo góc','có bo góc'));
   assert.equal(f.ktsPosts().length,1);assert.deepEqual(dto(f),{...SPEC,quantity:10,roundCorners:true});assert.deepEqual(Object.keys(dto(f)).sort(),exactKeys);assert.equal(last(f).querySelector('.ta-quote-total').textContent,'10 cái: '+DISPLAY);assert.doesNotMatch(last(f).textContent,/phụ phí|5\.000|VAT|giá vốn|lợi nhuận/);assert.equal(f.posts().length,0);
 });
+
+for(const paper of ['C150','C200','C250','C300','B350','ARCOPRINT1 EXTRA WHITE 300GSM','K02 146gsm','old mill avorio 350gsm','Magic coma white 300gsm','old mill premium white 350gsm','ARCOPRINT1 EXTRA WHITE 350GSM','s16 285gsm','giấy CONQUEROR IRIDESCENT GOLDEN HAZE 250GSM','Boheme Tradition Neve 320gsm','Astropack 350gsm'])integration('paper button echoes its friendly label and preserves matching API paper: '+paper,async t=>{
+  const f=await fixture(t);await send(f,'Danh thiếp KTS 500 cái 2 mặt không cán màng không bo góc có hộp mica');await choose(f,paper);
+  const selected=f.ktsSession.getState().slots.paper;assert.equal(f.ktsPosts().length,1);
+  const expected=f.root.ThanhAnKtsQuote.papers.find(item=>item.label===paper);assert.equal(dto(f).paper,expected.id);assert.equal(selected,expected.id);
+  assert.doesNotMatch(f.users().at(-1).textContent,/\bp\d{2}\b/i);assert.ok(f.users().at(-1).textContent.includes(paper));assert.ok(reply(f).includes(paper));
+  await send(f,expected.id.toUpperCase());assert.equal(dto(f).paper,expected.id);assert.equal(dto(f).quantity,500);
+  await send(f,'Giấy C300');if(f.ktsSession.getState().pendingField==='laminate')await send(f,'Không cán màng');
+  assert.equal(dto(f).paper,'p08');assert.equal(dto(f).quantity,500);
+  await send(f,'Giấy p08');assert.equal(dto(f).paper,'p08');assert.equal(dto(f).quantity,500);
+});
+integration('art-paper question, C300 button and recap retain a full voucher after connection failure',async t=>{
+  const options={metadataStatus:403,total:TOTAL},f=await prepared(t,{kts:options,realAi:{}});
+  await send(f,'In voucher 20 cái 18 x 5,4 cm 2 mặt có cán màng');await send(f,'có in giấy mĩ thuật k');
+  assert.match(reply(f),/mỹ thuật/);assert.match(reply(f),/C300/);assert.equal(f.ktsSession.getState().slots.quantity,20);assert.equal(f.ktsPosts().length,0);
+  await send(f,'Giấy C300');assert.equal(f.ktsSession.getState().pendingField,'roundCorners');assert.equal(f.ktsSession.getState().slots.quantity,20);
+  await choose(f,'Có');assert.match(reply(f),/kết nối bộ tính/i);assert.equal(f.ktsPosts().length,0);
+  const before=f.ktsSession.getState();await send(f,'quy cách cần tính của tooii là gì mà tính ko ra');
+  for(const word of ['20 cái','18 × 5,4 cm','C300','2 mặt','cán màng','bo góc','lỗi kết nối'])assert.ok(reply(f).includes(word),word);
+  assert.deepEqual(f.ktsSession.getState(),before);assert.equal(f.ktsPosts().length,0);
+  options.metadataStatus=200;await choose(f,'Tính lại');assert.equal(f.ktsPosts().length,1);assert.deepEqual(dto(f),{...SPEC,quantity:20,length:18,roundCorners:true,micaBox:false});
+});
+integration('unknown or rejected paper edits do not send a quote or revive old paper on retry',async t=>{
+  const f=await fixture(t);await send(f,CARD);
+  for(const text of ['không dùng C300','không chọn C300','C300 định lượng 250gsm','old mill premium white 300gsm','đổi sang giấy Duplex 300gsm, 200 cái']){
+    const count=f.ktsPosts().length;await send(f,text);assert.equal(f.ktsPosts().length,count);assert.equal(f.ktsSession.getState().pendingField,'paper',text);assert.equal(f.ktsSession.getState().slots.paper,undefined,text);
+    await send(f,'Báo giá lại');assert.equal(f.ktsPosts().length,count);await choose(f,'C300');assert.equal(f.ktsPosts().length,count+1);assert.equal(dto(f).paper,'p08');
+  }
+});
+integration('negative finishes are sent as false rather than the old affirmative spec',async t=>{
+  const f=await fixture(t);await send(f,CARD);
+  await send(f,'không cần hộp mica');assert.equal(dto(f).micaBox,false);
+  await send(f,'không muốn cán màng');assert.equal(dto(f).laminate,false);
+  await send(f,'không dùng bo góc');assert.equal(dto(f).roundCorners,false);
+});
+integration('changing paper quickly aborts an older quote and suppresses its stale total',async t=>{
+  const f=await fixture(t,{pending:true}),first=f.widget.send(CARD);await microtasks();const next=f.widget.send('Giấy C200');await microtasks();await first;
+  assert.equal(f.ktsPosts().length,2);assert.equal(f.ktsPosts()[0].signal.aborted,true);assert.equal(dto(f).paper,'p06');
+  f.resolveKts();await microtasks();assert.equal(f.all('.ta-quote-total').length,0);f.resolveKts();await microtasks();await f.clock.advance(320);await next;
+  assert.equal(f.all('.ta-quote-total').length,1);assert.match(reply(f),/C200/);assert.doesNotMatch(reply(f),/C300/);
+});

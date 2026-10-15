@@ -96,7 +96,7 @@ async function fixture(options={}){
     const call={url,...init};ktsRequests.push(call);
     if(options.kts.offline&&init.method==='POST')throw new Error('Mock KTS offline');
     let value,status=200;
-    if(init.method==='GET')value=options.kts.metadata||{version:1,enabled:true};
+    if(init.method==='GET'){value=options.kts.metadata||{version:1,enabled:true};status=options.kts.metadataStatus||200;}
     else{
       const spec=JSON.parse(init.body),paper=root.ThanhAnKtsQuote.papers.find(p=>p.id===spec.paper);
       status=options.kts.status||200;

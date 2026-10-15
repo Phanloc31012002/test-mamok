@@ -1441,7 +1441,13 @@
   function unsupported(text){
     return any(text,['be hinh','be khuon','cat khuon','die cut','diecut','hinh tron','hinh oval','hinh tam giac','ep kim','ep nhu','dap noi','khoan lo','duc lo','bam lo','lo treo','khuyen tai','bong tai']);
   }
-  function paperMatches(text){
+  const artPaper=text=>any(text,['giay my thuat','giay mi thuat','loai my thuat','loai mi thuat']);
+  function isSummaryRequest(value){
+    if(!safeInput(value))return false;
+    const text=normalize(value);
+    return /\b(?:quy cach|thong so|don in)\b/.test(text)&&/\b(?:nhac lai|tom tat|can tinh|dang giu|dang chon|da chon|da nhap|hien tai|vua chon|vua nhap|cua|la gi|tinh (?:ko|khong) ra)\b/.test(text);
+  }
+  function paperMatches(text,negated=false){
     const matches=[];
     for(const paper of PAPERS){
       const aliases=[paper.id,paper.label,paper.label.replace(/(\d+)\s*gsm/gi,'$1')];
@@ -1461,12 +1467,29 @@
       if(paper.id==='p17')aliases.push('conqueror iridescent golden haze 250gsm','conqueror iridescent golden haze 250');
       if(paper.id==='p18')aliases.push('boheme','boheme320','boheme320gsm','boheme 320 gsm','boheme 320gsm','boheme tradition','boheme tradition 320 gsm','boheme tradition 320gsm','boheme tradition neve','boheme neve','neve','neve320','neve320gsm');
       if(paper.id==='p20')aliases.push('astropack');
-      if(aliases.some(alias=>includes(text,alias)))matches.push(paper.id);
+      const found=aliases.some(alias=>{
+        const name=normalize(alias),padded=' '+text+' ';let at=padded.indexOf(' '+name+' ');
+        while(at!==-1){
+          const prefix=padded.slice(0,at).trimEnd();
+          const rejected=/\b(?:khong|chua)(?:\s+(?:co|can|muon|dung|chon|lay|in|su|giay|loai|phai)){0,7}$/.test(prefix);
+          if(rejected===negated)return true;
+          at=padded.indexOf(' '+name+' ',at+1);
+        }
+        return false;
+      });
+      if(found)matches.push(paper.id);
     }
     return matches;
   }
   function wrongPaperDescription(text){
-    const descriptions=[['k\\s*02',146],['(?:astropack|avorio)',350],['(?:boheme(?:\\s+tradition)?(?:\\s+neve)?|neve)',320]];
+    const descriptions=[
+      ['(?:c|couche)',[150,200,250,300]],['(?:b|bristol|briston)',[350]],
+      ['(?:arcoprint1(?:\\s+extra\\s+white)?|arcoprint)',[300,350]],['k\\s*02',[146]],
+      ['(?:old\\s+mill\\s+avorio|avorio)',[350]],['magic\\s+coma(?:\\s+white)?',[300]],
+      ['old\\s+mill\\s+premium\\s+white',[350]],['s16',[285]],
+      ['conqueror\\s+iridescent\\s+golden\\s+haze',[250]],
+      ['(?:boheme(?:\\s+tradition)?(?:\\s+neve)?|neve)',[320]],['astropack',[350]]
+    ];
     for(const [brand,weight] of descriptions){
       const expression=new RegExp('\\b'+brand+'\\s*(\\d+)\\s*(gsm|g(?:r)?(?:\\s*m\\s*2)?)?\\b','g');
       for(const match of text.matchAll(expression)){
@@ -1474,7 +1497,7 @@
         // A quantity or side/dimension value following a paper name is not its
         // grammage. Explicit wrong grammage never maps via a short brand alias.
         if(!match[2]&&/^(?:cai|hop|tam|chiec|mat|cm|mm)\b/.test(rest))continue;
-        if(Number(match[1])!==weight)return true;
+        if(!weight.includes(Number(match[1])))return true;
       }
     }
     return false;
@@ -1494,11 +1517,12 @@
     function reset(){state=fresh();}
     reset();
     function getState(){const {sources,...publicState}=state;return freeze(copy(publicState));}
-    function summary(){
+    function summary(includeQuantity=false){
       const s=state.slots,paper=PAPERS.find(p=>p.id===s.paper);
       const parts=[state.product?LABELS[state.product]+' in KTS':null];
       if(positive(s.length)&&positive(s.width))parts.push(displayNumber(s.length)+' × '+displayNumber(s.width)+' cm');
       if(paper)parts.push(paper.label);
+      if(includeQuantity&&positiveInteger(s.quantity))parts.push(s.quantity.toLocaleString('vi-VN')+' cái'+(state.rawQuantity?.unit==='box'?' ('+state.rawQuantity.value+' hộp)':''));
       if([1,2].includes(s.sides))parts.push(s.sides+' mặt');
       if(typeof s.laminate==='boolean')parts.push(s.laminate?'cán màng':'không cán màng');
       if(typeof s.roundCorners==='boolean')parts.push(s.roundCorners?'bo góc':'không bo góc');
@@ -1515,7 +1539,7 @@
       else if(field==='paper'){
         const available=allowedPapers(state.product),restricted=available.length===1;
         text=restricted?'Dạ, '+LABELS[state.product].toLowerCase()+' in KTS trong luồng này dùng giấy C300. Bạn chọn C300 để tiếp tục ạ?':state.paperGroup==='art'?'Dạ, bạn chọn mã giấy mỹ thuật nào ạ?':'Dạ, bạn chọn loại giấy nào ạ?';
-        items=(state.paperGroup==='art'&&!restricted?available.filter(p=>ART_IDS.has(p.id)):available).map(p=>({label:p.label,query:'Giấy '+p.id}));
+        items=(state.paperGroup==='art'&&!restricted?available.filter(p=>ART_IDS.has(p.id)):available).map(p=>({label:p.label,query:/^giấy /i.test(p.label)?p.label:'Giấy '+p.label}));
       }
       else if(field==='quantity')text='Dạ, bạn cần in bao nhiêu '+(state.product==='card'?'cái hoặc hộp (1 hộp = 100 cái)':'cái')+' ạ?';
       else if(field==='size')text='Dạ, kích thước dài × rộng của '+(LABELS[state.product]||'ấn phẩm').toLowerCase()+' là bao nhiêu cm hoặc mm ạ?';
@@ -1571,9 +1595,20 @@
       if(!positiveInteger(value)||!positiveInteger(quantity)||unit==='box'&&state.product!=='card')return false;
       state.rawQuantity={value,unit};state.slots.quantity=quantity;state.sources.quantity='user';return true;
     }
+    function describe(){
+      const field=nextField(),pending=state.pendingField,details=summary(true);
+      const next=state.blockedUnsupported?blockedReply():field?prompt(field):null;
+      state.pendingField=pending;
+      return result('clarify',(details?'Dạ, Mầm đang giữ: '+details+'. ':'Dạ, Mầm chưa có quy cách in. ')+(next?next.text:'Bạn chọn tính lại để lấy giá theo quy cách này nhé.'),{
+        specSummary:true,pendingField:field,summary:details,choices:next?.choices||choices([['Tính lại','Báo giá lại']])
+      });
+    }
     function answer(value){
       if(!safeInput(value))return result('consultation','Dạ, bạn chỉ nhập loại ấn phẩm và quy cách in, tránh thông tin cá nhân hoặc bí mật ạ.',{safetyBlocked:true});
       const raw=value.trim(),text=normalize(raw),numberText=fold(raw).replace(/×/g,'x');
+      if(isSummaryRequest(raw))return describe();
+      // A capability question is informational: keep the current order intact.
+      if(artPaper(text)&&/\b(?:co in|in duoc|co lam|co nhan|co (?:giay|loai))\b/.test(text))return result('consultation','Dạ, giấy mỹ thuật cần xác nhận loại giấy và quy cách. '+(['tag','voucher'].includes(state.product)?'Luồng tính tự động cho '+LABELS[state.product].toLowerCase()+' hiện chỉ có C300. ':'')+'Mầm vẫn giữ lựa chọn hiện tại; bạn nhắn Zalo để được tư vấn giấy mỹ thuật nhé.',{summary:summary(true),preserveOrder:true});
       const hits=products(text),before=state.pendingField;
       if(offset(text)&&!digital(text))return result('kts-exit','Dạ, yêu cầu in offset dùng luồng báo giá riêng ạ.',{method:'offset',product:hits.length===1?hits[0]:state.product,rawQuantity:state.rawQuantity?copy(state.rawQuantity):null});
       if(unsupported(text)){state.blockedUnsupported=true;return result('consultation','Dạ, bế hình hoặc gia công này cần tư vấn riêng; Mầm không dùng giá cắt thẳng để thay thế ạ.');}
@@ -1589,19 +1624,25 @@
       if(!state.product)return prompt('product');
       const s=state.slots,notices=[],errors=[];
       const error=field=>{if(!errors.includes(field))errors.push(field);};
-      const papers=paperMatches(text);
+      const papers=paperMatches(text),rejectedPapers=paperMatches(text,true);
+      const rejectedPaper=rejectedPapers.length&&(!papers.length||papers.some(paper=>rejectedPapers.includes(paper)));
       const paperConsultation=/\bp19\b|\bbiancon(?:\d+(?:gsm|g(?:r)?(?:\s*m\s*2)?)?)?\b/.test(text);
       const unknownPaperName=/\b(?:kraft|fort|ivory)(?:\d+(?:gsm|g(?:r)?(?:\s*m\s*2)?)?)?\b/.test(text)||includes(text,'giay nhua')||/\b(?:boheme|neve)[a-z0-9]*\b/.test(text)&&!papers.includes('p18');
       const unknownId=[...text.matchAll(/\bp\d{2}\b/g)].some(match=>!PAPER_IDS.has(match[0]));
       const unknownWeight=[...text.matchAll(/\b(c|couche|briston|bristol|b)\s*(\d+)(?:\s*(?:gsm|g(?:r)?(?:\s*m\s*2)?))?\b/g)].some(match=>['c','couche'].includes(match[1])?![150,200,250,300].includes(Number(match[2])):Number(match[2])!==350);
-      if(paperConsultation||unknownPaperName||papers.length>1||unknownId||unknownWeight||wrongPaperDescription(text)){delete s.paper;delete state.sources.paper;state.paperGroup=null;error('paper');changed=true;}
+      const declaredWeights=[...text.matchAll(/\bdinh luong\s*(\d+)(?:\s*(?:gsm|g(?:r)?(?:\s*m\s*2)?))?\b|\b(\d+)\s*(?:gsm|g(?:r)?(?:\s*m\s*2)?)\b/g)].map(match=>Number(match[1]||match[2]));
+      const mismatchedWeight=papers.length===1&&declaredWeights.some(weight=>{
+        const label=PAPERS.find(paper=>paper.id===papers[0]).label;
+        return weight!==Number(label.match(/(\d+)\s*gsm/i)?.[1]||label.match(/^[CB](\d+)/)?.[1]);
+      });
+      if(rejectedPaper||paperConsultation||unknownPaperName||papers.length>1||unknownId||unknownWeight||mismatchedWeight||wrongPaperDescription(text)){delete s.paper;delete state.sources.paper;state.paperGroup=null;error('paper');changed=true;}
       else if(papers.length===1){
         if(allowedPapers(state.product).some(p=>p.id===papers[0])){s.paper=papers[0];state.sources.paper='user';}
         else{delete s.paper;delete state.sources.paper;error('paper');}
         state.paperGroup=null;changed=true;
       }
-      else if(any(text,['giay my thuat','loai my thuat'])){delete s.paper;state.paperGroup='art';error('paper');changed=true;}
-      else if(/\bp\d{2}\b|\b(?:c|couche|briston|bristol|b)\s*\d+\b|\b(?:k02|astropack|avorio|boheme|neve)[a-z0-9]*\b/.test(text)||any(text,['giay fort','giay kraft','giay ivory','giay nhua','boheme','neve','arcoprint','old mill','magic coma','conqueror','s16'])){delete s.paper;state.paperGroup=null;error('paper');changed=true;}
+      else if(artPaper(text)){delete s.paper;delete state.sources.paper;state.paperGroup='art';error('paper');changed=true;}
+      else if(/\bgiay\b|\bp\d{2}\b|\b(?:c|couche|briston|bristol|b)\s*\d+\b|\b(?:k02|astropack|avorio|boheme|neve)[a-z0-9]*\b/.test(text)||any(text,['giay fort','giay kraft','giay ivory','giay nhua','boheme','neve','arcoprint','old mill','magic coma','conqueror','s16'])){delete s.paper;state.paperGroup=null;error('paper');changed=true;}
       const quantityMatches=[...numberText.matchAll(/\b(\d[\d.,]*)\s*(hop|cai|tam|chiec|card|tag|voucher|pcs|pieces)\b/g)];
       const amounts=[];
       for(const match of quantityMatches){
@@ -1641,9 +1682,9 @@
       else if(sideMatches.length){s.sides=sideMatches[0];state.sources.sides='user';changed=true;}
       else if(before==='sides'&&/^[12]$/.test(text)){s.sides=Number(text);state.sources.sides='user';changed=true;}
       const booleanPatterns={
-        laminate:{no:/\bkhong\s+(?:(?:co|can|phu)\s+)?(?:can\s+)?mang\b/g,yes:/\b(?:can|phu)\s+mang\b/g},
-        roundCorners:{no:/\bkhong\s+(?:(?:co|can|muon)\s+)?bo\s+goc\b|\bgoc\s+vuong\b/g,yes:/\bbo\s+goc\b|\bgoc\s+tron\b/g},
-        micaBox:{no:/\bkhong\s+(?:(?:co|dung)\s+)?(?:hop\s+)?mica\b/g,yes:/\b(?:hop\s+)?mica\b/g}
+        laminate:{no:/\b(?:khong|chua)\s+(?:(?:co|can|muon|dung|phu)\s+){0,3}(?:can\s+)?mang\b/g,yes:/\b(?:can|phu)\s+mang\b/g},
+        roundCorners:{no:/\b(?:khong|chua)\s+(?:(?:co|can|muon|dung)\s+){0,3}bo\s+goc\b|\bgoc\s+vuong\b/g,yes:/\bbo\s+goc\b|\bgoc\s+tron\b/g},
+        micaBox:{no:/\b(?:khong|chua)\s+(?:(?:co|can|muon|dung)\s+){0,3}(?:hop\s+)?mica\b/g,yes:/\b(?:hop\s+)?mica\b/g}
       };
       const attempts={};
       for(const [field,patterns] of Object.entries(booleanPatterns)){
@@ -1668,7 +1709,7 @@
     }
     return Object.freeze({answer,getState,reset});
   }
-  root.ThanhAnKts=Object.freeze({papers:PAPERS,isRequest,createSession});
+  root.ThanhAnKts=Object.freeze({papers:PAPERS,isRequest,isSummaryRequest,createSession});
 })(typeof window!=='undefined'?window:globalThis);
 </script><script>(function(root){
   'use strict';
@@ -1698,7 +1739,7 @@
     return Object.freeze({version:1,kind:'quote',total:value.total,currency:'VND',spec:Object.freeze({...spec,paperLabel:value.spec.paperLabel})});
   }
   function validateFallback(value){
-    return exact(value,['version','kind','reason'])&&value.version===1&&value.kind==='fallback'&&['consultation','invalid','busy','unavailable'].includes(value.reason)?fallback(value.reason):null;
+    return exact(value,['version','kind','reason'])&&value.version===1&&value.kind==='fallback'&&['consultation','invalid','busy','unavailable','configuration'].includes(value.reason)?fallback(value.reason):null;
   }
   // A fractional wire number can round to the requested integer in JSON.parse.
   // Scan the structure first, retaining only the unique direct quantity token.
@@ -1762,7 +1803,7 @@
     }catch(_){throw Error('KTS endpoint must be same-origin');}
     const request=options.fetchImpl||root.fetch?.bind(root);
     if(typeof request!=='function')throw Error('KTS fetch is unavailable');
-    let enabled=false,checked=false,destroyed=false,serial=0,active=null,checking=null,metadata=null;
+    let enabled=false,checked=false,destroyed=false,serial=0,active=null,checking=null,metadata=null,lastFailure='unavailable';
     function abort(){serial++;if(active)active.abort();active=null;}
     async function transport(method,spec){
       const id=serial,controller=new AbortController();if(method==='GET')checking=controller;else active=controller;let stop;
@@ -1774,25 +1815,25 @@
           if(method==='POST')init.body=JSON.stringify(spec);
           const response=await request(endpoint.href,init);
           if(controller.signal.aborted||response?.redirected||response?.url!==endpoint.href){cancel(response?.body);return fallback('unavailable');}
-          if(response.status!==200){cancel(response.body);return fallback({400:'invalid',422:'consultation',429:'busy',503:'unavailable'}[response.status]||'unavailable');}
+          if(response.status!==200){cancel(response.body);return fallback({400:'invalid',403:'configuration',422:'consultation',429:'busy',503:'unavailable'}[response.status]||'unavailable');}
           return (await read(response,controller.signal,spec))??fallback('unavailable');
         })().catch(()=>fallback('unavailable'));
         const value=await Promise.race([operation,boundary]);
         return destroyed||controller.signal.aborted||method==='POST'&&id!==serial?null:value;
       }finally{clearTimeout(timer);controller.signal.removeEventListener('abort',stop);if(active===controller)active=null;if(checking===controller)checking=null;}
     }
-    function check(){
-      if(destroyed)return Promise.resolve(false);if(metadata)return metadata;if(checked)return Promise.resolve(enabled);
-      metadata=transport('GET').then(value=>{if(destroyed)return false;checked=true;enabled=exact(value,['version','enabled'])&&value.version===1&&value.enabled===true;return enabled;}).finally(()=>{metadata=null;});return metadata;
+    function check({retry=false}={}){
+      if(destroyed)return Promise.resolve(false);if(metadata)return metadata;if(checked&&(enabled||!retry))return Promise.resolve(enabled);
+      metadata=transport('GET').then(value=>{if(destroyed)return false;checked=true;enabled=exact(value,['version','enabled'])&&value.version===1&&value.enabled===true;lastFailure=value?.reason==='configuration'?'configuration':'unavailable';return enabled;}).finally(()=>{metadata=null;});return metadata;
     }
     async function quote(value){
       if(destroyed)return null;
       const spec=validateSpec(value);if(!spec)return fallback('invalid');
-      if(!enabled)return fallback('unavailable');if(active)return fallback('busy');
+      if(!enabled)return fallback(lastFailure);if(active)return fallback('busy');
       const result=await transport('POST',spec);if(result===null)return null;
       return validateQuote(result,spec)||validateFallback(result)||fallback('unavailable');
     }
-    return Object.freeze({check,quote,abort,destroy(){if(destroyed)return;destroyed=true;enabled=false;abort();if(checking)checking.abort();},getState:()=>({enabled,checked,destroyed,pending:!!active})});
+    return Object.freeze({check,quote,abort,getFailure:()=>lastFailure,destroy(){if(destroyed)return;destroyed=true;enabled=false;abort();if(checking)checking.abort();},getState:()=>({enabled,checked,destroyed,pending:!!active})});
   }
   root.ThanhAnKtsQuote=Object.freeze({create,papers:PAPERS,validateSpec});
 })(typeof window!=='undefined'?window:globalThis);
@@ -1997,8 +2038,8 @@
     function freeze(value){Object.freeze(value);Object.values(value).forEach(v=>{if(v&&typeof v==='object'&&!Object.isFrozen(v))freeze(v);});}freeze(data);
     const conversation=root.ThanhAnFAQ.createSession?root.ThanhAnFAQ.createSession(data):{answer:text=>root.ThanhAnFAQ.answer(text,data),reset(){}};
     const ktsSession=root.ThanhAnKts?.createSession();
-    let legacyCardTurns=[],legacyCardPending=false;
-    function resetConversation(){conversation.reset();ktsSession?.reset();legacyCardTurns=[];legacyCardPending=false;}
+    let legacyCardTurns=[],legacyCardPending=false,lastKtsFailure=null;
+    function resetConversation(){conversation.reset();ktsSession?.reset();legacyCardTurns=[];legacyCardPending=false;lastKtsFailure=null;}
     const presentation=root.ThanhAnPresentation.create({delayMs:320});
     function snapshotInformation(query){
       const corpus=config.informationData;
@@ -2048,8 +2089,10 @@
     const ktsReady=ktsClient?ktsClient.check().then(enabled=>{ktsStatusReady=true;return !destroyed&&enabled;}):Promise.resolve(false);
     function abortKts(){for(const finish of [...ktsReadyWaits])finish(false);if(ktsStatusReady)ktsClient?.abort();}
     function waitForKts(){
-      if(ktsStatusReady||!ktsClient)return Promise.resolve(!!ktsClient?.getState().enabled);
-      return new Promise(resolve=>{const finish=ready=>{ktsReadyWaits.delete(finish);resolve(ready);};ktsReadyWaits.add(finish);ktsReady.then(finish);});
+      if(!ktsClient)return Promise.resolve(false);
+      if(ktsClient.getState().enabled)return Promise.resolve(true);
+      const ready=ktsStatusReady?ktsClient.check({retry:true}):ktsReady;
+      return new Promise(resolve=>{const finish=enabled=>{ktsReadyWaits.delete(finish);resolve(!destroyed&&enabled);};ktsReadyWaits.add(finish);ready.then(finish);});
     }
     const log=el('div','ta-log',undefined,content);log.setAttribute('role','log');log.setAttribute('aria-live','polite');log.setAttribute('aria-relevant','additions');log.setAttribute('aria-label','Cuộc trò chuyện với Mầm');
     const auxiliary=el('section','ta-aux-view',undefined,content);auxiliary.id='ta-mam-aux-view';auxiliary.hidden=true;auxiliary.setAttribute('aria-labelledby','ta-aux-title');
@@ -2228,17 +2271,19 @@
       // without changing either engine's selected product or quantity unit.
       const base=root.ThanhAnFAQ.answer(text,data);
       if(['policy','limit','contacts','faq'].includes(base.kind))return base;
-      if(!root.ThanhAnKts.isRequest(text)&&/\?|\b(la gi|giay gi|dinh luong|bao nhieu gsm|kich thuoc|kho giay|kt a[45])\b/.test(normalized)){
+      if(!root.ThanhAnKts.isRequest(text)&&!/\b(?:dinh luong\s*\d+|\d+\s*(?:gsm|g|gr))\b/.test(normalized)&&/\?|\b(la gi|giay gi|dinh luong|bao nhieu gsm|kich thuoc|kho giay|kt a[45])\b/.test(normalized)){
         const basic=root.ThanhAnFAQ.createSession?.(data).answer(text);
         if(basic?.basicInformation)return basic;
       }
       const active=ktsSession.getState().product;
       const otherProduct=/\b(catalogue|catalog|decal|tem nhan|to roi|tui giay|hop giay|bao thu|li xi|phieu thu|folder|menu|thiep cuoi)\b/.test(normalized);
       const methodChoice=legacyCardPending&&/\b(in nhanh|kts|ky thuat so|digital)\b/.test(normalized)&&!normalized.includes('offset');
-      if(!otherProduct&&(active||root.ThanhAnKts.isRequest(text)||methodChoice)){
+      if(!otherProduct&&(active||root.ThanhAnKts.isRequest(text)||root.ThanhAnKts.isSummaryRequest(text)||methodChoice)){
         if(!active)conversation.reset();
         const inputText=methodChoice&&!active?'Card in nhanh, '+legacyCardTurns.join(', ')+', '+text:text;
-        const result=ktsSession.answer(inputText);
+        const previous=JSON.stringify(ktsSession.getState().slots),result=ktsSession.answer(inputText);
+        if(previous!==JSON.stringify(ktsSession.getState().slots))lastKtsFailure=null;
+        if(result.specSummary&&lastKtsFailure)return {...result,text:result.text+' '+(lastKtsFailure==='configuration'?'Lần tính trước bị lỗi kết nối bộ tính trên trang này.':'Lần tính trước bộ tính chưa trả được giá; Mầm chưa có giá để xác nhận.')};
         legacyCardTurns=[];legacyCardPending=false;
         if(result.kind!=='kts-exit')return {...result,handoff:result.kind==='consultation'};
         ktsSession.reset();conversation.reset();
@@ -2258,8 +2303,8 @@
       return result;
     }
     function ktsFallback(reason){
-      const messages={invalid:'Quy cách này cần kiểm tra lại. Bạn sửa lựa chọn hoặc nhắn Zalo để được tư vấn nhé.',consultation:'Quy cách này cần báo giá riêng. Bạn nhắn Zalo để được tư vấn nhé.',busy:'Bộ tính đang bận. Bạn chờ một phút rồi chọn tính lại nhé.',unavailable:'Bộ tính chưa phản hồi. Bạn chọn tính lại hoặc nhắn Zalo để được tư vấn nhé.'};
-      return{kind:'consultation',text:messages[reason]||messages.unavailable,handoff:true,...(['busy','unavailable'].includes(reason)?{choices:[{label:'Tính lại',query:'Báo giá lại'}]}:{})};
+      const messages={configuration:'Kết nối bộ tính trên trang này đang lỗi. Mầm vẫn giữ quy cách; bạn chọn tính lại hoặc nhắn Zalo để được tư vấn nhé.',invalid:'Quy cách này cần kiểm tra lại. Bạn sửa lựa chọn hoặc nhắn Zalo để được tư vấn nhé.',consultation:'Quy cách này cần báo giá riêng. Bạn nhắn Zalo để được tư vấn nhé.',busy:'Bộ tính đang bận. Bạn chờ một phút rồi chọn tính lại nhé.',unavailable:'Bộ tính chưa phản hồi. Bạn chọn tính lại hoặc nhắn Zalo để được tư vấn nhé.'};
+      return{kind:'consultation',text:messages[reason]||messages.unavailable,handoff:true,...(['busy','unavailable','configuration'].includes(reason)?{choices:[{label:'Tính lại',query:'Báo giá lại'}]}:{})};
     }
     function ktsQuote(result,request){
       const amount=BigInt(result.total).toLocaleString('vi-VN')+' ₫';
@@ -2305,7 +2350,8 @@
               if(destroyed||generation!==requestGeneration)return;
               const quote=ready?await ktsClient.quote(local.spec):null;
               if(destroyed||generation!==requestGeneration)return;
-              local=quote?.kind==='quote'?ktsQuote(quote,local):ktsFallback(quote?.reason||'unavailable');
+              lastKtsFailure=quote?.kind==='quote'?null:quote?.reason||ktsClient?.getFailure()||'unavailable';
+              local=quote?.kind==='quote'?ktsQuote(quote,local):ktsFallback(lastKtsFailure);
           }else if(local?.informationQuery&&infoClient){
               const info=await infoClient.get(local.informationQuery.productId,local.informationQuery.field);
               if(destroyed||generation!==requestGeneration)return;

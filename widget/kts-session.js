@@ -58,7 +58,13 @@
   function unsupported(text){
     return any(text,['be hinh','be khuon','cat khuon','die cut','diecut','hinh tron','hinh oval','hinh tam giac','ep kim','ep nhu','dap noi','khoan lo','duc lo','bam lo','lo treo','khuyen tai','bong tai']);
   }
-  function paperMatches(text){
+  const artPaper=text=>any(text,['giay my thuat','giay mi thuat','loai my thuat','loai mi thuat']);
+  function isSummaryRequest(value){
+    if(!safeInput(value))return false;
+    const text=normalize(value);
+    return /\b(?:quy cach|thong so|don in)\b/.test(text)&&/\b(?:nhac lai|tom tat|can tinh|dang giu|dang chon|da chon|da nhap|hien tai|vua chon|vua nhap|cua|la gi|tinh (?:ko|khong) ra)\b/.test(text);
+  }
+  function paperMatches(text,negated=false){
     const matches=[];
     for(const paper of PAPERS){
       const aliases=[paper.id,paper.label,paper.label.replace(/(\d+)\s*gsm/gi,'$1')];
@@ -78,12 +84,29 @@
       if(paper.id==='p17')aliases.push('conqueror iridescent golden haze 250gsm','conqueror iridescent golden haze 250');
       if(paper.id==='p18')aliases.push('boheme','boheme320','boheme320gsm','boheme 320 gsm','boheme 320gsm','boheme tradition','boheme tradition 320 gsm','boheme tradition 320gsm','boheme tradition neve','boheme neve','neve','neve320','neve320gsm');
       if(paper.id==='p20')aliases.push('astropack');
-      if(aliases.some(alias=>includes(text,alias)))matches.push(paper.id);
+      const found=aliases.some(alias=>{
+        const name=normalize(alias),padded=' '+text+' ';let at=padded.indexOf(' '+name+' ');
+        while(at!==-1){
+          const prefix=padded.slice(0,at).trimEnd();
+          const rejected=/\b(?:khong|chua)(?:\s+(?:co|can|muon|dung|chon|lay|in|su|giay|loai|phai)){0,7}$/.test(prefix);
+          if(rejected===negated)return true;
+          at=padded.indexOf(' '+name+' ',at+1);
+        }
+        return false;
+      });
+      if(found)matches.push(paper.id);
     }
     return matches;
   }
   function wrongPaperDescription(text){
-    const descriptions=[['k\\s*02',146],['(?:astropack|avorio)',350],['(?:boheme(?:\\s+tradition)?(?:\\s+neve)?|neve)',320]];
+    const descriptions=[
+      ['(?:c|couche)',[150,200,250,300]],['(?:b|bristol|briston)',[350]],
+      ['(?:arcoprint1(?:\\s+extra\\s+white)?|arcoprint)',[300,350]],['k\\s*02',[146]],
+      ['(?:old\\s+mill\\s+avorio|avorio)',[350]],['magic\\s+coma(?:\\s+white)?',[300]],
+      ['old\\s+mill\\s+premium\\s+white',[350]],['s16',[285]],
+      ['conqueror\\s+iridescent\\s+golden\\s+haze',[250]],
+      ['(?:boheme(?:\\s+tradition)?(?:\\s+neve)?|neve)',[320]],['astropack',[350]]
+    ];
     for(const [brand,weight] of descriptions){
       const expression=new RegExp('\\b'+brand+'\\s*(\\d+)\\s*(gsm|g(?:r)?(?:\\s*m\\s*2)?)?\\b','g');
       for(const match of text.matchAll(expression)){
@@ -91,7 +114,7 @@
         // A quantity or side/dimension value following a paper name is not its
         // grammage. Explicit wrong grammage never maps via a short brand alias.
         if(!match[2]&&/^(?:cai|hop|tam|chiec|mat|cm|mm)\b/.test(rest))continue;
-        if(Number(match[1])!==weight)return true;
+        if(!weight.includes(Number(match[1])))return true;
       }
     }
     return false;
@@ -111,11 +134,12 @@
     function reset(){state=fresh();}
     reset();
     function getState(){const {sources,...publicState}=state;return freeze(copy(publicState));}
-    function summary(){
+    function summary(includeQuantity=false){
       const s=state.slots,paper=PAPERS.find(p=>p.id===s.paper);
       const parts=[state.product?LABELS[state.product]+' in KTS':null];
       if(positive(s.length)&&positive(s.width))parts.push(displayNumber(s.length)+' × '+displayNumber(s.width)+' cm');
       if(paper)parts.push(paper.label);
+      if(includeQuantity&&positiveInteger(s.quantity))parts.push(s.quantity.toLocaleString('vi-VN')+' cái'+(state.rawQuantity?.unit==='box'?' ('+state.rawQuantity.value+' hộp)':''));
       if([1,2].includes(s.sides))parts.push(s.sides+' mặt');
       if(typeof s.laminate==='boolean')parts.push(s.laminate?'cán màng':'không cán màng');
       if(typeof s.roundCorners==='boolean')parts.push(s.roundCorners?'bo góc':'không bo góc');
@@ -132,7 +156,7 @@
       else if(field==='paper'){
         const available=allowedPapers(state.product),restricted=available.length===1;
         text=restricted?'Dạ, '+LABELS[state.product].toLowerCase()+' in KTS trong luồng này dùng giấy C300. Bạn chọn C300 để tiếp tục ạ?':state.paperGroup==='art'?'Dạ, bạn chọn mã giấy mỹ thuật nào ạ?':'Dạ, bạn chọn loại giấy nào ạ?';
-        items=(state.paperGroup==='art'&&!restricted?available.filter(p=>ART_IDS.has(p.id)):available).map(p=>({label:p.label,query:'Giấy '+p.id}));
+        items=(state.paperGroup==='art'&&!restricted?available.filter(p=>ART_IDS.has(p.id)):available).map(p=>({label:p.label,query:/^giấy /i.test(p.label)?p.label:'Giấy '+p.label}));
       }
       else if(field==='quantity')text='Dạ, bạn cần in bao nhiêu '+(state.product==='card'?'cái hoặc hộp (1 hộp = 100 cái)':'cái')+' ạ?';
       else if(field==='size')text='Dạ, kích thước dài × rộng của '+(LABELS[state.product]||'ấn phẩm').toLowerCase()+' là bao nhiêu cm hoặc mm ạ?';
@@ -188,9 +212,20 @@
       if(!positiveInteger(value)||!positiveInteger(quantity)||unit==='box'&&state.product!=='card')return false;
       state.rawQuantity={value,unit};state.slots.quantity=quantity;state.sources.quantity='user';return true;
     }
+    function describe(){
+      const field=nextField(),pending=state.pendingField,details=summary(true);
+      const next=state.blockedUnsupported?blockedReply():field?prompt(field):null;
+      state.pendingField=pending;
+      return result('clarify',(details?'Dạ, Mầm đang giữ: '+details+'. ':'Dạ, Mầm chưa có quy cách in. ')+(next?next.text:'Bạn chọn tính lại để lấy giá theo quy cách này nhé.'),{
+        specSummary:true,pendingField:field,summary:details,choices:next?.choices||choices([['Tính lại','Báo giá lại']])
+      });
+    }
     function answer(value){
       if(!safeInput(value))return result('consultation','Dạ, bạn chỉ nhập loại ấn phẩm và quy cách in, tránh thông tin cá nhân hoặc bí mật ạ.',{safetyBlocked:true});
       const raw=value.trim(),text=normalize(raw),numberText=fold(raw).replace(/×/g,'x');
+      if(isSummaryRequest(raw))return describe();
+      // A capability question is informational: keep the current order intact.
+      if(artPaper(text)&&/\b(?:co in|in duoc|co lam|co nhan|co (?:giay|loai))\b/.test(text))return result('consultation','Dạ, giấy mỹ thuật cần xác nhận loại giấy và quy cách. '+(['tag','voucher'].includes(state.product)?'Luồng tính tự động cho '+LABELS[state.product].toLowerCase()+' hiện chỉ có C300. ':'')+'Mầm vẫn giữ lựa chọn hiện tại; bạn nhắn Zalo để được tư vấn giấy mỹ thuật nhé.',{summary:summary(true),preserveOrder:true});
       const hits=products(text),before=state.pendingField;
       if(offset(text)&&!digital(text))return result('kts-exit','Dạ, yêu cầu in offset dùng luồng báo giá riêng ạ.',{method:'offset',product:hits.length===1?hits[0]:state.product,rawQuantity:state.rawQuantity?copy(state.rawQuantity):null});
       if(unsupported(text)){state.blockedUnsupported=true;return result('consultation','Dạ, bế hình hoặc gia công này cần tư vấn riêng; Mầm không dùng giá cắt thẳng để thay thế ạ.');}
@@ -206,19 +241,25 @@
       if(!state.product)return prompt('product');
       const s=state.slots,notices=[],errors=[];
       const error=field=>{if(!errors.includes(field))errors.push(field);};
-      const papers=paperMatches(text);
+      const papers=paperMatches(text),rejectedPapers=paperMatches(text,true);
+      const rejectedPaper=rejectedPapers.length&&(!papers.length||papers.some(paper=>rejectedPapers.includes(paper)));
       const paperConsultation=/\bp19\b|\bbiancon(?:\d+(?:gsm|g(?:r)?(?:\s*m\s*2)?)?)?\b/.test(text);
       const unknownPaperName=/\b(?:kraft|fort|ivory)(?:\d+(?:gsm|g(?:r)?(?:\s*m\s*2)?)?)?\b/.test(text)||includes(text,'giay nhua')||/\b(?:boheme|neve)[a-z0-9]*\b/.test(text)&&!papers.includes('p18');
       const unknownId=[...text.matchAll(/\bp\d{2}\b/g)].some(match=>!PAPER_IDS.has(match[0]));
       const unknownWeight=[...text.matchAll(/\b(c|couche|briston|bristol|b)\s*(\d+)(?:\s*(?:gsm|g(?:r)?(?:\s*m\s*2)?))?\b/g)].some(match=>['c','couche'].includes(match[1])?![150,200,250,300].includes(Number(match[2])):Number(match[2])!==350);
-      if(paperConsultation||unknownPaperName||papers.length>1||unknownId||unknownWeight||wrongPaperDescription(text)){delete s.paper;delete state.sources.paper;state.paperGroup=null;error('paper');changed=true;}
+      const declaredWeights=[...text.matchAll(/\bdinh luong\s*(\d+)(?:\s*(?:gsm|g(?:r)?(?:\s*m\s*2)?))?\b|\b(\d+)\s*(?:gsm|g(?:r)?(?:\s*m\s*2)?)\b/g)].map(match=>Number(match[1]||match[2]));
+      const mismatchedWeight=papers.length===1&&declaredWeights.some(weight=>{
+        const label=PAPERS.find(paper=>paper.id===papers[0]).label;
+        return weight!==Number(label.match(/(\d+)\s*gsm/i)?.[1]||label.match(/^[CB](\d+)/)?.[1]);
+      });
+      if(rejectedPaper||paperConsultation||unknownPaperName||papers.length>1||unknownId||unknownWeight||mismatchedWeight||wrongPaperDescription(text)){delete s.paper;delete state.sources.paper;state.paperGroup=null;error('paper');changed=true;}
       else if(papers.length===1){
         if(allowedPapers(state.product).some(p=>p.id===papers[0])){s.paper=papers[0];state.sources.paper='user';}
         else{delete s.paper;delete state.sources.paper;error('paper');}
         state.paperGroup=null;changed=true;
       }
-      else if(any(text,['giay my thuat','loai my thuat'])){delete s.paper;state.paperGroup='art';error('paper');changed=true;}
-      else if(/\bp\d{2}\b|\b(?:c|couche|briston|bristol|b)\s*\d+\b|\b(?:k02|astropack|avorio|boheme|neve)[a-z0-9]*\b/.test(text)||any(text,['giay fort','giay kraft','giay ivory','giay nhua','boheme','neve','arcoprint','old mill','magic coma','conqueror','s16'])){delete s.paper;state.paperGroup=null;error('paper');changed=true;}
+      else if(artPaper(text)){delete s.paper;delete state.sources.paper;state.paperGroup='art';error('paper');changed=true;}
+      else if(/\bgiay\b|\bp\d{2}\b|\b(?:c|couche|briston|bristol|b)\s*\d+\b|\b(?:k02|astropack|avorio|boheme|neve)[a-z0-9]*\b/.test(text)||any(text,['giay fort','giay kraft','giay ivory','giay nhua','boheme','neve','arcoprint','old mill','magic coma','conqueror','s16'])){delete s.paper;state.paperGroup=null;error('paper');changed=true;}
       const quantityMatches=[...numberText.matchAll(/\b(\d[\d.,]*)\s*(hop|cai|tam|chiec|card|tag|voucher|pcs|pieces)\b/g)];
       const amounts=[];
       for(const match of quantityMatches){
@@ -258,9 +299,9 @@
       else if(sideMatches.length){s.sides=sideMatches[0];state.sources.sides='user';changed=true;}
       else if(before==='sides'&&/^[12]$/.test(text)){s.sides=Number(text);state.sources.sides='user';changed=true;}
       const booleanPatterns={
-        laminate:{no:/\bkhong\s+(?:(?:co|can|phu)\s+)?(?:can\s+)?mang\b/g,yes:/\b(?:can|phu)\s+mang\b/g},
-        roundCorners:{no:/\bkhong\s+(?:(?:co|can|muon)\s+)?bo\s+goc\b|\bgoc\s+vuong\b/g,yes:/\bbo\s+goc\b|\bgoc\s+tron\b/g},
-        micaBox:{no:/\bkhong\s+(?:(?:co|dung)\s+)?(?:hop\s+)?mica\b/g,yes:/\b(?:hop\s+)?mica\b/g}
+        laminate:{no:/\b(?:khong|chua)\s+(?:(?:co|can|muon|dung|phu)\s+){0,3}(?:can\s+)?mang\b/g,yes:/\b(?:can|phu)\s+mang\b/g},
+        roundCorners:{no:/\b(?:khong|chua)\s+(?:(?:co|can|muon|dung)\s+){0,3}bo\s+goc\b|\bgoc\s+vuong\b/g,yes:/\bbo\s+goc\b|\bgoc\s+tron\b/g},
+        micaBox:{no:/\b(?:khong|chua)\s+(?:(?:co|can|muon|dung)\s+){0,3}(?:hop\s+)?mica\b/g,yes:/\b(?:hop\s+)?mica\b/g}
       };
       const attempts={};
       for(const [field,patterns] of Object.entries(booleanPatterns)){
@@ -285,5 +326,5 @@
     }
     return Object.freeze({answer,getState,reset});
   }
-  root.ThanhAnKts=Object.freeze({papers:PAPERS,isRequest,createSession});
+  root.ThanhAnKts=Object.freeze({papers:PAPERS,isRequest,isSummaryRequest,createSession});
 })(typeof window!=='undefined'?window:globalThis);
